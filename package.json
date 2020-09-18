@@ -1,0 +1,50 @@
+{
+  "name": "poc.twilio-video",
+  "version": "0.1.0",
+  "description": "A small application that tests the Twilio Video APIs",
+  "main": "public/electron.js",
+  "build": {
+    "appId": "com.ashik.teleaudiologyLab",
+    "productName": "Twilio Video API Analysis Application",
+    "files": [
+      "build/**/*",
+      "public/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.education",
+      "target": "default",
+      "type": "development",
+      "identity": null
+    }
+  },
+  "scripts": {
+    "build": "webpack",
+    "start": "npm run build && electron ./public/electron.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "author": "Ashik U A",
+  "license": "ISC",
+  "dependencies": {
+    "twilio": "^3.49.1",
+    "twilio-video": "^2.7.2",
+    "vue": "^2.6.12",
+    "vue-router": "^3.4.3"
+  },
+  "devDependencies": {
+    "css-loader": "^4.3.0",
+    "electron": "^10.1.2",
+    "electron-builder": "^22.8.1",
+    "file-loader": "^6.1.0",
+    "html-webpack-plugin": "^4.4.1",
+    "mini-css-extract-plugin": "^0.11.2",
+    "url-loader": "^4.1.0",
+    "vue-loader": "^15.9.3",
+    "vue-style-loader": "^4.1.2",
+    "vue-template-compiler": "^2.6.12",
+    "webpack": "^4.44.1",
+    "webpack-cli": "^3.3.12",
+    "webpack-dev-server": "^3.11.0"
+  }
+}
