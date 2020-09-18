@@ -153,7 +153,7 @@ async function createTrack(device) {
                 mandatory: {
                     chromeMediaSource: 'desktop',
                     chromeMediaSourceId: device.deviceId,
-                    maxWidth: device.height,
+                    maxWidth: device.width,
                     maxHeight: device.height
                 }
             }
