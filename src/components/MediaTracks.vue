@@ -18,8 +18,16 @@
                 <input type="number" v-model="selected_device_info.height">
             </section>
             <section class="attributes">
-                <label>Frame Rate</label>
-                <input type="number" v-model="selected_device_info.framerate">
+                <label>Minimum FPS</label>
+                <input type="number" v-model="selected_device_info.min_framerate">
+            </section>
+            <section class="attributes">
+                <label>Ideal FPS</label>
+                <input type="number" v-model="selected_device_info.ideal_framerate">
+            </section>
+            <section class="attributes">
+                <label>Maximum FPS</label>
+                <input type="number" v-model="selected_device_info.max_framerate">
             </section>
             <section class="attributes">
                 <label>Priority</label>
@@ -54,7 +62,10 @@ export default {
             device_added: false,
             selected_device: null,
             selected_device_info: {
-                priority: 'standard'
+                priority: 'standard',
+                min_framerate: 12,
+                ideal_framerate: 24,
+                max_framerate: 30
             },
             added_devices: []
         };
@@ -142,7 +153,9 @@ async function createTrack(device) {
             width: device.width,
             height: device.height,
             frameRate: {
-                ideal: device.frameRate
+                min: device.min_framerate,
+                ideal: device.ideal_framerate,
+                max: device.max_framerate
             }
         });
     }
