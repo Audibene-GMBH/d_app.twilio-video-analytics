@@ -172,7 +172,13 @@ async function createTrack(device) {
             }
         });
         localTrack = await new LocalVideoTrack(stream.getVideoTracks()[0], {
-            frameRate: device.frameRate
+            width: device.width,
+            height: device.height,
+            frameRate: {
+                min: device.min_framerate,
+                ideal: device.ideal_framerate,
+                max: device.max_framerate
+            }
         });
     }
     return localTrack;

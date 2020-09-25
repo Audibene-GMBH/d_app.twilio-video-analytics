@@ -55,6 +55,9 @@
                     <label>Frame Rate</label>
                     <span>{{ track._vt_frameRate }}</span>
                 </div>
+                <div class="stat">
+                    <line-chart :new_d="track.twilio_data_rate" ref="twilioDataRateChart"></line-chart>
+                </div>
             </li>
         </ul>
 
@@ -119,7 +122,10 @@
 </template>
 
 <script>
+import LineChart from "./charts/LineChart.vue";
+
 export default {
+    components: { LineChart },
     props: ['available_tracks'],
     data: function() {
         return {
