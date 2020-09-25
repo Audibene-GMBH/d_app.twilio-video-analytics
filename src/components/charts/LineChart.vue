@@ -27,7 +27,7 @@ export default {
             },
 
             sliding_window: {
-                size: 10,
+                size: 30,
                 current_pointer: 0
             }
         };
@@ -54,6 +54,7 @@ function addDataPoint(data_point) {
 
     // Call the Re-Paint Functions
     AnimationEngine.addToQueue(null, drawGridLines, this);
+    AnimationEngine.addToQueue(null, drawDataLine, this);
 }
 
 function updateMetaData(data_point, _this) {
@@ -101,10 +102,32 @@ function drawGridLines(_this) {
 }
 
 function drawDataLine(_this) {
-    _this.data_points.d.slice(
+    let data_window = _this.data_points.d.slice(
         _this.sliding_window.current_pointer < _this.sliding_window.size ? 
-        0:0
-    )
+        0 : (_this.sliding_window.current_pointer - _this.sliding_window.size),
+        _this.sliding_window.current_pointer
+    );
+
+    let content_width = _this.width - (_this.padding * 2);
+    let content_height = _this.height - (_this.padding * 2);
+
+    let plots = data_window.map((data, index) => {
+        let _x = _this.padding + (content_width / _this.sliding_window.size * ((_this.sliding_window.size - data_window.length) + index));
+        let _y = _this.padding + content_height - (data * (content_height / (_this.data_points.max - _this.data_points.min)));
+        return {
+            x: _x,
+            y: _y
+        };
+    });
+
+    _this.context.strokeStyle = "#0288d1";
+    _this.context.beginPath();
+
+    for(let i = plots.length - 1; i > 0; i--) {
+        _this.context.moveTo(plots[i].x, plots[i].y);
+        _this.context.lineTo(plots[i-1].x, plots[i-1].y);
+    }
+    _this.context.stroke();
 }
 
 function _text(_this, text, x, y) {

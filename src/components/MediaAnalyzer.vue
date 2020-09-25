@@ -19,9 +19,9 @@
                     <label>Average Data Rate (Bytes)</label>
                     <span>{{ convert_network_data(track.total_data / track.total_ticks) }}</span>
                 </div>
-                <div class="stat">
-                    <label>Average Data Rate (Twilio) (Bytes)</label>
-                    <span>{{ convert_network_data(track.twilio_data_rate) }}</span>
+                <div class="stat" style="grid-row: span 2">
+                    <label>Twilio Data Rate</label>
+                    <line-chart :new_d="track.twilio_data_rate" ref="twilioDataRateChart"></line-chart>
                 </div>
                 <div class="stat">
                     <label>Total Data Generated (Bits)</label>
@@ -54,9 +54,6 @@
                 <div class="stat" v-if="track._is_video">
                     <label>Frame Rate</label>
                     <span>{{ track._vt_frameRate }}</span>
-                </div>
-                <div class="stat">
-                    <line-chart :new_d="track.twilio_data_rate" ref="twilioDataRateChart"></line-chart>
                 </div>
             </li>
         </ul>

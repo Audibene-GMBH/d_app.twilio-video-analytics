@@ -4,8 +4,6 @@ var AnimationEngine = {
     _isAnimateBusy: false,
 
     _animate: function() {
-        console.log(this, this._preparationQueue)
-
         this._isAnimateBusy = true;
         this._animationQueue.forEach(({ context, action, args}) => {
             action.bind(context)(...args);
