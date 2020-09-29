@@ -8,7 +8,7 @@
 import Default from "./layouts/default.vue"
 
 export default {
-    components: {Default}   
+    components: {Default}
 }
 </script>
 

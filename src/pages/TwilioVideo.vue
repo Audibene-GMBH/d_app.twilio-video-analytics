@@ -3,7 +3,7 @@
         <div class="main-heading">
             <h2>Twilio Video Analytics</h2>
             <p>A simple page for testing the Twilio Video API. This is mainly to check the reliability and bandwidth consumption of different Media Streams</p>
-        </div>   
+        </div>
 
         <section>
             <h4>Check-In</h4>
@@ -15,6 +15,10 @@
             <h4>Get a Room</h4>
             <p>Enter the details mentioned below. That should let us get you to the Room</p>
             <section class="input-container">
+                <div class="input-section">
+                    <label>Room Name</label>
+                    <input type="text" v-model="room_name">
+                </div>
                 <div class="input-section">
                     <label>Your Name</label>
                     <input type="text" v-model="participant_name">
@@ -45,7 +49,7 @@
             <h4>Put on some Tracks</h4>
             <p>Now that you're in, you can add a bunch of Tracks and go nuts!</p>
             <media-tracks class="media-tracks" @track_added="addTrackToRoom" @track_removed="removeTrackFromRoom"></media-tracks>
-        </section>  
+        </section>
 
         <section class="data-section">
             <h4>Play Around with the Data</h4>
@@ -60,6 +64,7 @@ import { connect } from "twilio-video";
 import MediaTracks from "../components/MediaTracks.vue";
 import MediaAnalyzer from "../components/MediaAnalyzer.vue";
 import TwilioAuthenticator from "../components/TwilioAuthenticator.vue";
+import { ipcRenderer, remote } from "electron";
 
 export default {
     components : { MediaTracks, MediaAnalyzer, TwilioAuthenticator },
@@ -92,6 +97,9 @@ export default {
                 window.__twilio.stats = await this.room._room.getStats();
             }
         }, 1000);
+
+        const tv = remote.require('./modules/twilio-video');
+        this.room_name = tv.generateRoomName();
     }
 }
 
@@ -99,9 +107,9 @@ async function connectToRoom() {
     if (this.room._status === 'connected' || this.room._status === 'reconnected') {
         this.room._room.disconnect();
     }
-    else { 
+    else {
         this.room._status = "connecting";
-        const {access_token, room_name} = await getPermissionToken(this.participant_name);
+        const {access_token, room_name} = await getPermissionToken(this.participant_name, this.room_name);
         this.access_token = access_token;
         this.room_name = room_name;
 
@@ -129,16 +137,16 @@ function setEventHandlersForRoom(component) {
     let r = component.room._room;
     r.on("reconnecting", () => { component.room._status = "reconnecting"; });
     r.on("reconnected", () => { component.room._status = "reconnected"; });
-    r.on("disconnected", (room, error) => { 
+    r.on("disconnected", (room, error) => {
         room.localParticipant.tracks.forEach(track => {
             if (!track.stop) {
                 track.track.mediaStreamTrack.stop();
             }
         });
-        component.room._status = "disconnected"; 
+        component.room._status = "disconnected";
     });
 
-    r.on("participantConnected", participant => { 
+    r.on("participantConnected", participant => {
         component.room._participants = component.room._room.participants.size;
     });
     r.on("participantDisconnected", participant => {
@@ -147,13 +155,13 @@ function setEventHandlersForRoom(component) {
     r.on("participantReconnected", participant => { console.log('Participant Reconnected'); });
     r.on("participantReconnecting", participant => { console.log('Participant Reconnecting'); });
 
-    r.on("trackDisabled", () => {console.log('Track Disabled'); });
-    r.on("trackEnabled", () => {console.log('Track Enabled'); });
+    r.on("trackDisabled", () => { console.log('Track Disabled'); });
+    r.on("trackEnabled", () => { console.log('Track Enabled'); });
     r.on("trackPublished", (publication, participant) => {
-        console.log(`Track Published by ${participant.identity}`); 
+        console.log(`Track Published by ${participant.identity}`);
     });
     r.on("trackSubscribed", (track, publication, participant) => {
-        console.log(`Track Subscribed by ${participant.identity}`, track); 
+        console.log(`Track Subscribed by ${participant.identity}`, track);
         console.log(`Track's Name :`, publication.track);
         component.room._tracks.push({
             ...track,
@@ -164,10 +172,10 @@ function setEventHandlersForRoom(component) {
         });
     });
     r.on("trackunSubscribed", (track, publication, participant) => {
-        console.log(`Track UnSubscribed by ${participant.identity}`, track); 
+        console.log(`Track UnSubscribed by ${participant.identity}`, track);
     });
     r.on("trackUnpublished", (publication, participant) => {
-        console.log(`Track Unpublished by ${participant.identity}`, publication); 
+        console.log(`Track Unpublished by ${participant.identity}`, publication);
         let track_to_be_removed = component.room._tracks.find(t => {
             if (!t.remote) return false;
             return t.sid === publication.trackSid;
@@ -191,18 +199,18 @@ function addTrackToRoom(track) {
 
 function removeTrackFromRoom(track) {
     this.room._room.localParticipant.unpublishTrack(track._localTrack);
-    
+
     let removed_track = this.room._tracks.find(t => t.deviceId === track.deviceId && t.label === track.label);
     this.$refs.analyzer.stop_analyzing_track(removed_track);
     this.room._tracks.splice(this.room._tracks.indexOf(removed_track), 1);
 }
 
-function getPermissionToken(userName) {
+function getPermissionToken(userName, roomName) {
     return new Promise((res, rej) => {
-        window.__electron.ipcRenderer.on("get_access_token", (event, token_and_room) => {
+        ipcRenderer.on("get_access_token", (event, token_and_room) => {
             res(token_and_room);
         });
-        window.__electron.ipcRenderer.send("get_access_token", userName);
+        ipcRenderer.send("get_access_token", userName, roomName);
     });
 }
 </script>
