@@ -41,7 +41,4 @@ app.on("ready", () => {
     height: modalHeight,
   });
   modalChildWindow.loadURL("chrome://webrtc-internals");
-  modalChildWindow.once("ready-to-show", () => {
-    // modalChildWindow.show();
-  });
 });

@@ -26,7 +26,7 @@ module.exports = {
         use: ["vue-style-loader", MiniCssExtractPlugin.loader, "css-loader"],
       },
       {
-        test: /\.svg$/i,
+        test: /\.(svg|png)$/i,
         use: [
           {
             loader: "file-loader",

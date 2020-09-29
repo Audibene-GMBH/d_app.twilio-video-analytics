@@ -26,7 +26,9 @@
 </template>
 
 <script>
+const { ipcRenderer } = require("electron");
 let self = undefined;
+
 export default {
     data: function() {
         return {
@@ -107,10 +109,10 @@ async function getFileContent(file) {
 }
 
 function setCredentials(credentials) {
-    window.__electron.ipcRenderer.send("set_twilio_credentials", credentials);
+    ipcRenderer.send("set_twilio_credentials", credentials);
 }
 
-window.__electron.ipcRenderer.on("set_twilio_credentials", async (ev, credentials) => {
+ipcRenderer.on("set_twilio_credentials", async (event, credentials) => {
     if (!credentials) {
         return;
     }
