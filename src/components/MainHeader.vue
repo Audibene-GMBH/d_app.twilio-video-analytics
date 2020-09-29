@@ -4,11 +4,10 @@
             <span class="main">audibene | Teleaudiology Lab</span>
         </div>
         <span class="console">
-            <img src="../assets/icons/console.svg">
+            <img src="../assets/icons/console.svg" @click="toggleDevTools">
         </span>
     </header>
 </template>
-
 
 <style scoped>
 header {
@@ -38,3 +37,15 @@ span {
     color: #334;
 }
 </style>
+
+<script>
+const { remote } = require("electron");
+
+export default {
+    methods: {
+        toggleDevTools: () => {
+            remote.getCurrentWebContents().toggleDevTools();
+        },
+    }
+}
+</script>

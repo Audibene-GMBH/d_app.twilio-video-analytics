@@ -1,19 +1,21 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, screen } = require("electron");
 const path = require("path");
 
 const { init_ipc_listeners } = require("./modules/ipc-events");
 const { load: load_config } = require("./modules/config-loader");
 
 app.on("ready", () => {
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   init_ipc_listeners();
 
   const window = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: width,
+    height: height,
     show: false,
     webPreferences: {
       devTools: true,
       nodeIntegration: true,
+      enableRemoteModule: true,
       preload: path.resolve(__dirname, "preloader.js"),
     },
   });
@@ -21,21 +23,25 @@ app.on("ready", () => {
   window.once("ready-to-show", async () => {
     window.maximize();
     window.show();
-    window.webContents.openDevTools();
 
     const creds = await load_config();
     window.webContents.send("set_twilio_credentials", creds);
   });
 
+  const modalWidth = 600;
+  const modalHeight = 1180;
   const modalChildWindow = new BrowserWindow({
     parent: window,
     modal: false,
+    closable: false,
+    x: window.getBounds().width - modalWidth,
+    y: 70,
     show: false,
-    width: 600,
-    height: 1180,
+    width: modalWidth,
+    height: modalHeight,
   });
   modalChildWindow.loadURL("chrome://webrtc-internals");
   modalChildWindow.once("ready-to-show", () => {
-    modalChildWindow.show();
+    // modalChildWindow.show();
   });
 });
