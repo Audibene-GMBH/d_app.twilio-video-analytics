@@ -26,8 +26,7 @@
 </template>
 
 <script>
-const { ipcRenderer } = require("electron");
-let self = undefined;
+const { ipcRenderer, remote } = require("electron");
 
 export default {
     data: function() {
@@ -66,8 +65,16 @@ export default {
             this.valid = false;
         }
     },
-    beforeMount() {
-        self = this;
+    async mounted() {
+        const config = remote.require("./modules/config-loader");
+        const credentials = await config.load();
+        if (!credentials) {
+            return;
+        }
+        const file = new File([JSON.stringify(credentials)], "dev.cred", {
+            type: "text/plain",
+        });
+        await handleFile.call(this, file);
     }
 };
 
@@ -111,17 +118,6 @@ async function getFileContent(file) {
 function setCredentials(credentials) {
     ipcRenderer.send("set_twilio_credentials", credentials);
 }
-
-ipcRenderer.on("set_twilio_credentials", async (event, credentials) => {
-    if (!credentials) {
-        return;
-    }
-    const file = new File([JSON.stringify(credentials)], "dev.cred", {
-        type: "text/plain",
-    });
-    await handleFile.call(self, file);
-    self = undefined;
-});
 </script>
 
 <style>

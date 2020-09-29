@@ -2,7 +2,6 @@ const { app, BrowserWindow, screen } = require("electron");
 const path = require("path");
 
 const { init_ipc_listeners } = require("./modules/ipc-events");
-const { load: load_config } = require("./modules/config-loader");
 
 app.on("ready", () => {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -23,9 +22,6 @@ app.on("ready", () => {
   window.once("ready-to-show", async () => {
     window.maximize();
     window.show();
-
-    const creds = await load_config();
-    window.webContents.send("set_twilio_credentials", creds);
   });
 
   const modalWidth = 600;
@@ -34,7 +30,8 @@ app.on("ready", () => {
     parent: window,
     modal: false,
     closable: false,
-    x: window.getBounds().width - modalWidth,
+    minimizable: false,
+    x: 70,
     y: 70,
     show: false,
     width: modalWidth,
