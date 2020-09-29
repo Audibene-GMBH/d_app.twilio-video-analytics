@@ -26,9 +26,11 @@
 </template>
 
 <script>
+let self = undefined;
 export default {
     data: function() {
         return {
+            credentials: null,
             drag: false,
             drop: false,
             valid: false
@@ -44,19 +46,7 @@ export default {
         },
         dropEvent: async function(event) {
             event.preventDefault();
-            this.file = event.dataTransfer.files[0];
-            this.credentials = await getFileContent(this.file);
-            if (this.credentials) {
-                if (this.credentials.acc_sid && this.credentials.api_key && this.credentials.api_sec) {
-                    this.valid = true;
-                    setCredentials(this.credentials);
-                }
-                else {
-                    this.valid = false;
-                }
-            }
-            this.drag = false;
-            this.drop = true;
+            await handleFile.call(this, event.dataTransfer.files[0]);
         },
         dragLeave: function(event) {
             this.drag = false;
@@ -65,25 +55,33 @@ export default {
             this.$refs.file_input.click();
         },
         set_credentials: async function(event) {
-            this.credentials = await getFileContent(event.target.files[0]);
-            if (this.credentials) {
-                if (this.credentials.acc_sid && this.credentials.api_key && this.credentials.api_sec) {
-                    this.valid = true;
-                    setCredentials(this.credentials);
-                }
-                else {
-                    this.valid = false;
-                }
-            }
-            this.drag = false;
-            this.drop = true;
+            event.preventDefault();
+            await handleFile.call(this, event.target.files[0]);
         },
         giveAnotherChance: function() {
             this.drag = false;
             this.drop = false;
             this.valid = false;
         }
+    },
+    beforeMount() {
+        self = this;
     }
+};
+
+async function handleFile(file) {
+    this.credentials = await getFileContent(file);
+    if (this.credentials) {
+        if (this.credentials.acc_sid && this.credentials.api_key && this.credentials.api_sec) {
+            this.valid = true;
+            setCredentials(this.credentials);
+        }
+        else {
+            this.valid = false;
+        }
+    }
+    this.drag = false;
+    this.drop = true;
 }
 
 async function getFileContent(file) {
@@ -104,13 +102,24 @@ async function getFileContent(file) {
         }
         else {
             res(null);
-        };
+        }
     });
 }
 
 function setCredentials(credentials) {
     window.__electron.ipcRenderer.send("set_twilio_credentials", credentials);
 }
+
+window.__electron.ipcRenderer.on("set_twilio_credentials", async (ev, credentials) => {
+    if (!credentials) {
+        return;
+    }
+    const file = new File([JSON.stringify(credentials)], "dev.cred", {
+        type: "text/plain",
+    });
+    await handleFile.call(self, file);
+    self = undefined;
+});
 </script>
 
 <style>
