@@ -26,7 +26,7 @@
 </template>
 
 <script>
-const { ipcRenderer, remote } = require("electron");
+import { ipcRenderer, remote } from "electron";
 
 export default {
     data: function() {
@@ -150,7 +150,7 @@ function setCredentials(credentials) {
     color: #666;
     margin-bottom: 10px;
 }
-.twilio-authenticator .drag input[type='file'] {
+.twilio-authenticator .drag input[type="file"] {
     display: none;
 }
 

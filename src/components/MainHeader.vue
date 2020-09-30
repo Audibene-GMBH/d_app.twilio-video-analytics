@@ -46,7 +46,7 @@ span:last-child {
 </style>
 
 <script>
-const { remote } = require("electron");
+import { remote } from "electron";
 export default {
     methods: {
         toggleDevTools: () => {

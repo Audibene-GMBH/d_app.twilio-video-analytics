@@ -25,7 +25,7 @@
                 </div>
                 <div class="input-section">
                     <button :disabled="room._status === 'connecting' ? true : false" @click="connectToRoom">
-                        {{ this.room._status === 'disconnected' ? "Connect to" : "Disconnect from" }} Room
+                        {{ this.room._status === "disconnected" ? "Connect to" : "Disconnect from" }} Room
                     </button>
                 </div>
             </section>
@@ -55,6 +55,9 @@
             <h4>Play Around with the Data</h4>
             <p>Here we present you with the data from the tracks that you've added. By the way, you are gonna see a bunch of other data from other Track Nerds.</p>
             <media-analyzer ref="analyzer" :available_tracks="room._tracks"></media-analyzer>
+
+<!--            <video autoplay controls class="participant_video"></video>-->
+<!--            <video autoplay controls class="participant_screen"></video>-->
         </section>
     </div>
 </template>
@@ -98,13 +101,13 @@ export default {
             }
         }, 1000);
 
-        const tv = remote.require('./modules/twilio-video');
+        const tv = remote.require("./modules/twilio-video");
         this.room_name = tv.generateRoomName();
     }
 }
 
 async function connectToRoom() {
-    if (this.room._status === 'connected' || this.room._status === 'reconnected') {
+    if (this.room._status === "connected" || this.room._status === "reconnected") {
         this.room._room.disconnect();
     }
     else {
@@ -113,15 +116,51 @@ async function connectToRoom() {
         this.access_token = access_token;
         this.room_name = room_name;
 
+        // https://miro.com/app/board/o9J_ksM7LNY=/?moveToWidget=3074457348070591695&cot=14
         await connect(this.access_token, {
-            name : this.room_name,
+            name: this.room_name,
+            region: "us1", // signaling only
             audio: false,
             video: false,
-            maxAudioBitrate: 32000,
             networkQuality: {
-                local: 3,
+                local: 3, // detailed
                 remote: 3
             },
+            preferredAudioCodecs: ["opus"], // default
+            preferredVideoCodecs: [{
+                codec: "VP8",
+                // https://www.twilio.com/docs/video/tutorials/using-bandwidth-profile-api#video-codecs-and-the-bw-profile
+                simulcast: true,
+            }, "VP9"],
+            enableDscp: true,
+            dominantSpeaker: true,
+            maxAudioBitrate: 32000, // 32kbps
+            maxVideoBitrate: 4000000, // 4mbps
+            bandwidthProfile: { // subscription related
+                video: {
+                    mode: "collaboration",
+                    trackSwitchOffMode: "detected", // "disabled"
+                    dominantSpeakerPriority: "high",
+                    maxTracks: 5,
+                    maxSubscriptionBitrate: 4000000, // max value for Group Rooms
+                    // https://www.twilio.com/docs/video/tutorials/using-bandwidth-profile-api#bw-profiles-vs-track-subscriptions
+                    renderDimensions: { // used to "downscale" tracks to optimize bandwidth
+                        high: { // relates to priority, not resolution
+                            width: 960,
+                            height: 540
+                        },
+                        standard: {
+                            width: 640,
+                            height: 360
+                        },
+                        low: {
+                            width: 320,
+                            height: 180
+                        }
+                    }
+                }
+            },
+            logLevel: "debug",
         }).then(room => {
             this.room._room = room;
             this.room._participants = this.room._room.participants.size;
@@ -152,17 +191,18 @@ function setEventHandlersForRoom(component) {
     r.on("participantDisconnected", participant => {
         component.room._participants = component.room._room.participants.size;
     });
-    r.on("participantReconnected", participant => { console.log('Participant Reconnected'); });
-    r.on("participantReconnecting", participant => { console.log('Participant Reconnecting'); });
+    r.on("participantReconnected", participant => { console.log("Participant Reconnected"); });
+    r.on("participantReconnecting", participant => { console.log("Participant Reconnecting"); });
 
-    r.on("trackDisabled", () => { console.log('Track Disabled'); });
-    r.on("trackEnabled", () => { console.log('Track Enabled'); });
+    r.on("trackDisabled", () => { console.log("Track Disabled"); });
+    r.on("trackEnabled", () => { console.log("Track Enabled"); });
     r.on("trackPublished", (publication, participant) => {
         console.log(`Track Published by ${participant.identity}`);
     });
     r.on("trackSubscribed", (track, publication, participant) => {
         console.log(`Track Subscribed by ${participant.identity}`, track);
         console.log(`Track's Name :`, publication.track);
+
         component.room._tracks.push({
             ...track,
             participantName: participant.identity,
@@ -170,6 +210,13 @@ function setEventHandlersForRoom(component) {
             _room: r,
             remote: true
         });
+
+        // track.on('switchedOff', () => {
+        //     console.log(`The RemoteTrack ${track.name} was switched off`);
+        // });
+        // track.on('switchedOn', () => {
+        //     console.log(`The RemoteTrack ${track.name} was switched on`);
+        // });
     });
     r.on("trackunSubscribed", (track, publication, participant) => {
         console.log(`Track UnSubscribed by ${participant.identity}`, track);
@@ -265,7 +312,7 @@ function getPermissionToken(userName, roomName) {
     color: #777;
     font-weight: 700;
 }
-.input-section input[type='text'] {
+.input-section input[type="text"] {
     border: none;
     padding: 10px 5px;
     border-bottom: 1px solid #999;
