@@ -2,14 +2,10 @@
     <div class="media-analyzer">
         <ul class="current-tracks">
             <li v-for="(track, index) in tracks_under_analysis" v-bind:key="index">
-                <h3><span ref="track-name" class="track-name" v-html="track._formatted_name"></span> | <span>{{track._track.remote ? 'Remote' : 'Local'}} ({{ track._track.kind }})</span></h3>
+                <h3><span ref="track-name" class="track-name" v-html="track._formatted_name"></span> | <span>{{track._track.remote ? "Remote" : "Local"}} ({{ track._track.kind }})</span></h3>
                 <div class="stat">
                     <label>Total Data Generated (Bytes)</label>
                     <span>{{ convert_network_data(track.total_data) }}</span>
-                </div>
-                <div class="stat">
-                    <label>Total Data Transferred (Twilio) (Bytes)</label>
-                    <span>{{ convert_network_data(track.twilio_total_data) }}</span>
                 </div>
                 <div class="stat">
                     <label>Data Rate (Bytes)</label>
@@ -19,6 +15,14 @@
                     <label>Average Data Rate (Bytes)</label>
                     <span>{{ convert_network_data(track.total_data / track.total_ticks) }}</span>
                 </div>
+                <div class="stat" v-if="track._is_video">
+                    <label>Width</label>
+                    <span>{{ track._vt_width }}</span>
+                </div>
+                <div class="stat" v-if="track._is_audio">
+                    <label></label>
+                    <span></span>
+                </div>
                 <div class="stat" style="grid-row: span 2">
                     <label>Twilio Data Rate</label>
                     <line-chart :new_d="track.twilio_data_rate" ref="twilioDataRateChart"></line-chart>
@@ -26,10 +30,6 @@
                 <div class="stat">
                     <label>Total Data Generated (Bits)</label>
                     <span>{{ convert_network_data(track.total_data, true) }}</span>
-                </div>
-                 <div class="stat">
-                    <label>Total Data Transferred (Twilio) (Bits)</label>
-                    <span>{{ convert_network_data(track.twilio_total_data, true) }}</span>
                 </div>
                 <div class="stat">
                     <label>Data Rate (Bits)</label>
@@ -39,28 +39,64 @@
                     <label>Average Data Rate (Bits)</label>
                     <span>{{ convert_network_data(track.total_data / track.total_ticks, true) }}</span>
                 </div>
+                <div class="stat" v-if="track._is_video">
+                    <label>Height</label>
+                    <span>{{ track._vt_height }}</span>
+                </div>
+                <div class="stat" v-if="track._is_audio">
+                    <label></label>
+                    <span></span>
+                </div>
+                <div class="stat">
+                    <label>Total Data Transferred (Twilio) (Bytes)</label>
+                    <span>{{ convert_network_data(track.twilio_total_data) }}</span>
+                </div>
+                <div class="stat" v-if="track._is_video">
+                    <label></label>
+                    <span></span>
+                </div>
+                <div class="stat" v-if="track._is_audio">
+                    <label></label>
+                    <span></span>
+                </div>
                 <div class="stat">
                     <label>Average Data Rate (Twilio) (Bits)</label>
                     <span>{{ convert_network_data(track.twilio_data_rate, true) }}</span>
                 </div>
                 <div class="stat" v-if="track._is_video">
-                    <label>Width</label>
-                    <span>{{ track._vt_width }}</span>
-                </div>
-                <div class="stat" v-if="track._is_video">
-                    <label>Height</label>
-                    <span>{{ track._vt_height }}</span>
-                </div>
-                <div class="stat" v-if="track._is_video">
                     <label>Frame Rate</label>
                     <span>{{ track._vt_frameRate }}</span>
+                </div>
+                <div class="stat" v-if="track._is_video">
+                    <label></label>
+                    <span></span>
+                </div>
+                <div class="stat" v-if="track._is_audio">
+                    <label></label>
+                    <span></span>
+                </div>
+                <div class="stat" v-if="track._is_audio">
+                    <label></label>
+                    <span></span>
+                </div>
+                <div class="stat">
+                    <label>Total Data Transferred (Twilio) (Bits)</label>
+                    <span>{{ convert_network_data(track.twilio_total_data, true) }}</span>
+                </div>
+                <div class="stat">
+                    <label></label>
+                    <span></span>
+                </div>
+                <div class="stat" v-if="track._is_audio">
+                    <label></label>
+                    <span></span>
                 </div>
             </li>
         </ul>
 
         <ul class="snapshots">
             <li v-for="(track, index) in snapshots" v-bind:key="index">
-                <h3><span ref="track-name" class="track-name" v-html="track._formatted_name"></span> | <span>{{track._track.remote ? 'Remote' : 'Local'}} ({{ track._track.kind }})</span></h3>
+                <h3><span ref="track-name" class="track-name" v-html="track._formatted_name"></span> | <span>{{track._track.remote ? "Remote" : "Local"}} ({{ track._track.kind }})</span></h3>
                 <div class="stat">
                     <label>Total Data Generated (Bytes)</label>
                     <span>{{ convert_network_data(track.total_data) }}</span>
@@ -123,7 +159,7 @@ import LineChart from "./charts/LineChart.vue";
 
 export default {
     components: { LineChart },
-    props: ['available_tracks'],
+    props: ["available_tracks"],
     data: function() {
         return {
             tracks_under_analysis: [],
@@ -181,10 +217,10 @@ function add_analyzer_to_track(track, component) {
             a_track.total_data += event.data.size;
             a_track.current_data = event.data.size;
             a_track.total_ticks++;
-            
+
             let stat_object = {};
             if (a_track._track.remote) {
-                if (a_track._track.kind === 'audio') {
+                if (a_track._track.kind === "audio") {
                     stat_object = window.__twilio.stats[0].remoteAudioTrackStats;
                 }
                 else {
@@ -192,13 +228,13 @@ function add_analyzer_to_track(track, component) {
                 }
                 stat_object = stat_object.find(t => t.trackSid === a_track._track.sid);
                 a_track.twilio_total_data = stat_object.bytesReceived;
-                
+
                 if (a_track._prev_stat_object) {
                     a_track.twilio_data_rate = ( (stat_object.bytesReceived - a_track._prev_stat_object.bytesReceived) / ((stat_object.timestamp - a_track._prev_stat_object.timestamp) / 1000) )
                 }
             }
             else {
-                if (a_track._track.kind === 'audioinput') {
+                if (a_track._track.kind === "audioinput") {
                     stat_object = window.__twilio.stats[0].localAudioTrackStats;
                 }
                 else {
@@ -212,7 +248,7 @@ function add_analyzer_to_track(track, component) {
                 }
             }
 
-            if (a_track._track.kind === 'audioinput' || a_track._track.kind === 'audio') {
+            if (a_track._track.kind === "audioinput" || a_track._track.kind === "audio") {
                 a_track._is_audio = true;
             }
             else {
@@ -234,23 +270,23 @@ function convert_network_data(data, bit = false) {
     if(bit) data = data * 8;
 
     let divisor = 0;
-    let suffix = bit ? 'b' : 'B';
+    let suffix = bit ? "b" : "B";
     let logB = __get_log_by_base(1024, data);
     if (logB >= 3) {
-        suffix = 'G' + suffix;
+        suffix = "G" + suffix;
         divisor = 3;
     }
     else if (logB >= 2) {
-        suffix = 'M' + suffix;
+        suffix = "M" + suffix;
         divisor = 2;
     }
     else if (logB >= 1) {
-        suffix = 'K' + suffix;
+        suffix = "K" + suffix;
         divisor = 1;
     }
-    
-    if (divisor === 0) return data + ' ' + suffix;
-    else return (data / Math.pow(1024, divisor)).toFixed(2) + ' ' + suffix;
+
+    if (divisor === 0) return data + " " + suffix;
+    else return (data / Math.pow(1024, divisor)).toFixed(2) + " " + suffix;
 }
 
 function stop_analyzing_track(track) {
@@ -271,20 +307,20 @@ function __check_equality(track1, track2) {
     }
     else return (
         track1.kind === track2.kind &&
-        track1.deviceId === track2.deviceId && 
+        track1.deviceId === track2.deviceId &&
         track1.groupId === track2.groupId &&
         track1.label === track2.label
     );
 }
 
 function __format_name(name_string) {
-    let new_array = name_string.split('').map(ele => {
-        if (!(ele >= '0' && ele <= '9')) {
-            return '<span class="letter">' + ele + '</span>';
+    let new_array = name_string.split("").map(ele => {
+        if (!(ele >= "0" && ele <= "9")) {
+            return "<span class=\"letter\">" + ele + "</span>";
         }
         else return ele;
     });
-    return new_array.join('');
+    return new_array.join("");
 }
 
 function __get_log_by_base(base, number) {
