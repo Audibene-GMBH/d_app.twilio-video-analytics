@@ -194,7 +194,10 @@ async function createTrack(device) {
         }
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         // creating "twilio track" for later publication
-        localTrack = await new LocalVideoTrack(stream.getVideoTracks()[0], {});
+        const track = stream.getVideoTracks()[0];
+        localTrack = await new LocalVideoTrack(track, {
+            name: track.id
+        });
     }
     return localTrack;
 }

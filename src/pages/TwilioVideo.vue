@@ -55,9 +55,6 @@
             <h4>Play Around with the Data</h4>
             <p>Here we present you with the data from the tracks that you've added. By the way, you are gonna see a bunch of other data from other Track Nerds.</p>
             <media-analyzer ref="analyzer" :available_tracks="room._tracks"></media-analyzer>
-
-<!--            <video autoplay controls class="participant_video"></video>-->
-<!--            <video autoplay controls class="participant_screen"></video>-->
         </section>
     </div>
 </template>
@@ -90,7 +87,7 @@ export default {
     methods: {
         connectToRoom: connectToRoom,
         addTrackToRoom: addTrackToRoom,
-        removeTrackFromRoom: removeTrackFromRoom
+        removeTrackFromRoom: removeTrackFromRoom,
     },
 
     mounted: function() {
@@ -130,7 +127,7 @@ async function connectToRoom() {
             preferredVideoCodecs: [{
                 codec: "VP8",
                 // https://www.twilio.com/docs/video/tutorials/using-bandwidth-profile-api#video-codecs-and-the-bw-profile
-                simulcast: true,
+                simulcast: false, // true,
             }, "VP9"],
             enableDscp: true,
             dominantSpeaker: true,
@@ -160,7 +157,7 @@ async function connectToRoom() {
                     }
                 }
             },
-            logLevel: "debug",
+            logLevel: "info", // "debug",
         }).then(room => {
             this.room._room = room;
             this.room._participants = this.room._room.participants.size;
@@ -201,7 +198,7 @@ function setEventHandlersForRoom(component) {
     });
     r.on("trackSubscribed", (track, publication, participant) => {
         console.log(`Track Subscribed by ${participant.identity}`, track);
-        console.log(`Track's Name :`, publication.track);
+        console.log(`Track's name:`, publication.track);
 
         component.room._tracks.push({
             ...track,
@@ -211,12 +208,12 @@ function setEventHandlersForRoom(component) {
             remote: true
         });
 
-        // track.on('switchedOff', () => {
-        //     console.log(`The RemoteTrack ${track.name} was switched off`);
-        // });
-        // track.on('switchedOn', () => {
-        //     console.log(`The RemoteTrack ${track.name} was switched on`);
-        // });
+        track.on('switchedOff', () => {
+            console.log(`The RemoteTrack ${track.name} was switched off`);
+        });
+        track.on('switchedOn', () => {
+            console.log(`The RemoteTrack ${track.name} was switched on`);
+        });
     });
     r.on("trackunSubscribed", (track, publication, participant) => {
         console.log(`Track UnSubscribed by ${participant.identity}`, track);
@@ -235,13 +232,28 @@ function setEventHandlersForRoom(component) {
 }
 
 function addTrackToRoom(track) {
-    console.log(`Track to be Added to Room : ${track.label}`);
-    console.log(track)
+    console.log(`Track to be Added to Room : ${track.label}`, track);
+
     this.room._room.localParticipant.publishTrack(track._localTrack, {
         priority: track.priority
     });
     track.name = track._localTrack.id;
     this.room._tracks.push(track);
+
+    // TODO Use MediaViewer component instead (w/ hide/show functionality)
+    if (track.kind === "videoinput" || track.kind === "screen") { // we don't wanna render audio track to avoid feedback
+        const videoEl = track._localTrack.attach();
+        const node = document.querySelector('.data-section');
+        if (node && videoEl) {
+            const attr = node.getAttributeNames().find((name) => {
+                return /^data/.test(name);
+            }) || `media-track-${track.kind}`;
+
+            videoEl.classList.add("media-track-element");
+            videoEl.setAttribute(attr, "");
+            node.appendChild(videoEl);
+        }
+    }
 }
 
 function removeTrackFromRoom(track) {
@@ -364,5 +376,11 @@ button:hover {
 }
 button:disabled {
     background: #777;
+}
+
+.media-track-element {
+    display: inline-block;
+    position: absolute;
+    left: -10000px;
 }
 </style>
