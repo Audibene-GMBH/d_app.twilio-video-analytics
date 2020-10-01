@@ -19,7 +19,9 @@
   },
   "scripts": {
     "build": "webpack",
-    "start": "npm run build && electron ./public/electron.js",
+    "prestart": "npm run build",
+    "start": "electron ./public/electron.js",
+    "dev": "nodemon -e '.js,.ts,.vue' -w './src' -w './public' --exec 'npm run start'",
     "test": "echo \"Error: no test specified\" && exit 1",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
@@ -27,6 +29,9 @@
   "author": "Ashik U A",
   "license": "ISC",
   "dependencies": {
+    "chance": "^1.1.7",
+    "docker-names": "^1.1.1",
+    "globby": "^11.0.1",
     "twilio": "^3.49.1",
     "twilio-video": "^2.7.2",
     "vue": "^2.6.12",

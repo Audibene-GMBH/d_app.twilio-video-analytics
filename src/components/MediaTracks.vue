@@ -1,13 +1,13 @@
 <template>
     <div class="media-tracks">
         <select class="media-devices" @change="set_selected_device">
-            <option v-for="device in devices" 
-                v-bind:key="device.index" 
+            <option v-for="device in devices"
+                v-bind:key="device.index"
                 :value="device.index">
                 {{ device.label }}
             </option>
         </select>
-        
+
         <div class="attribute-container" v-if="selected_device && (selected_device.kind === 'videoinput' || selected_device.kind === 'screen')">
             <section class="attributes">
                 <label>Width</label>
@@ -54,6 +54,7 @@
 
 <script>
 import { createLocalAudioTrack, createLocalVideoTrack, LocalVideoTrack } from "twilio-video";
+import { desktopCapturer } from "electron";
 
 export default {
     data: function() {
@@ -62,8 +63,8 @@ export default {
             device_added: false,
             selected_device: null,
             selected_device_info: {
-                priority: 'standard',
-                min_framerate: 12,
+                priority: "standard",
+                min_framerate: 15,
                 ideal_framerate: 24,
                 max_framerate: 30
             },
@@ -76,12 +77,12 @@ export default {
     },
     mounted: async function() {
         let devices = await navigator.mediaDevices.enumerateDevices();
-        devices = devices.filter(d => d.kind !== 'audiooutput');
-        devices = devices.concat(await window.__electron.desktopCapturer.getSources({ types: ['screen'] }));
+        devices = devices.filter(d => d.kind !== "audiooutput");
+        devices = devices.concat(await desktopCapturer.getSources({ types: ["screen"] }));
         this.devices = devices.map((d, i) => {
             if (!d.kind) return {
                 index: i,
-                kind: 'screen',
+                kind: "screen",
                 label: d.name,
                 deviceId: d.id
             };
@@ -97,15 +98,9 @@ export default {
     },
     watch: {
         selected_device: function() {
-            if (this.added_devices.find(d => {
-                if (d) return d.label === this.selected_device.label;
-                else return false;
-            })) {
-                this.device_added = true;
-            }
-            else {
-                this.device_added = false;
-            }
+            this.device_added = !!this.added_devices.find(d => {
+                return d ? d.label === this.selected_device.label : false;
+            });
         }
     }
 }
@@ -113,12 +108,12 @@ export default {
 async function add_remove_track() {
     if (!this.device_added) {
         let device = {
-            label : this.selected_device.label, 
-            deviceId: this.selected_device.deviceId, 
-            groupId: this.selected_device.groupId, 
-            kind: this.selected_device.kind, 
+            label : this.selected_device.label,
+            deviceId: this.selected_device.deviceId,
+            groupId: this.selected_device.groupId,
+            kind: this.selected_device.kind,
             priority: this.selected_device_info.priority,
-            ...(this.selected_device.kind === 'videoinput' || this.selected_device.kind === 'screen' ? this.selected_device_info : [])
+            ...(this.selected_device.kind === "videoinput" || this.selected_device.kind === "screen" ? this.selected_device_info : [])
         };
         device._localTrack = await createTrack(device);
         this.added_devices.push(device);
@@ -140,39 +135,68 @@ async function add_remove_track() {
 
 async function createTrack(device) {
     let localTrack = null;
-    if (device.kind === 'audioinput') {
+    if (device.kind === "audioinput") {
         localTrack = await createLocalAudioTrack({
             deviceId: device.deviceId,
-            groupId: device.groupId
+            logLevel: "debug",
         });
     }
-    else if (device.kind === 'videoinput') {
-        localTrack = await createLocalVideoTrack({
+    else if (device.kind === "videoinput") {
+        let constraints = {
             deviceId: device.deviceId,
-            groupId: device.groupId,
-            width: device.width,
-            height: device.height,
-            frameRate: {
-                min: device.min_framerate,
-                ideal: device.ideal_framerate,
-                max: device.max_framerate
+            logLevel: "debug",
+        };
+        if (device.width) {
+            constraints.width = {
+                ideal: device.width
+            };
+        }
+        if (device.height) {
+            constraints.height = {
+                ideal: device.height
+            };
+        }
+        if (device.min_framerate || device.ideal_framerate || device.max_framerate) {
+            constraints.frameRate = {};
+            if (device.min_framerate) {
+                constraints.frameRate.min = device.min_framerate;
             }
-        });
+            if (device.ideal_framerate) {
+                constraints.frameRate.ideal = device.ideal_framerate;
+            }
+            if (device.max_framerate) {
+                constraints.frameRate.max = device.max_framerate;
+            }
+        }
+        localTrack = await createLocalVideoTrack(constraints);
     }
-    else if (device.kind === 'screen') {
-        const stream = await navigator.mediaDevices.getUserMedia({
+    else if (device.kind === "screen") {
+        let constraints = {
             audio: false,
             video: {
                 mandatory: {
-                    chromeMediaSource: 'desktop',
+                    chromeMediaSource: "desktop",
                     chromeMediaSourceId: device.deviceId,
-                    maxWidth: device.width,
-                    maxHeight: device.height
                 }
             }
-        });
-        localTrack = await new LocalVideoTrack(stream.getVideoTracks()[0], {
-            frameRate: device.frameRate
+        };
+        if (device.width) {
+            constraints.video.mandatory.maxWidth = device.width; // what about minWidth?
+        }
+        if (device.height) {
+            constraints.video.mandatory.maxHeight = device.height;
+        }
+        if (device.min_framerate) {
+            constraints.video.mandatory.minFrameRate = device.min_framerate;
+        }
+        if (device.max_framerate) {
+            constraints.video.mandatory.maxFrameRate = device.max_framerate;
+        }
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        // creating "twilio track" for later publication
+        const track = stream.getVideoTracks()[0];
+        localTrack = await new LocalVideoTrack(track, {
+            name: track.id
         });
     }
     return localTrack;
