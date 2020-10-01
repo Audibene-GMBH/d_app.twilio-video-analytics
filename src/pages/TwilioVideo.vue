@@ -24,6 +24,10 @@
                     <input type="text" v-model="participant_name">
                 </div>
                 <div class="input-section">
+                    <label>Simulcast</label>
+                    <input type="checkbox" v-model="simulcast" />
+                </div>
+                <div class="input-section">
                     <button :disabled="room._status === 'connecting' ? true : false" @click="connectToRoom">
                         {{ this.room._status === "disconnected" ? "Connect to" : "Disconnect from" }} Room
                     </button>
@@ -76,6 +80,7 @@ export default {
             access_token: null,
             participant_name: null,
             room_name: null,
+            simulcast: false,
             room: {
                 _room: null,
                 _status: "disconnected",
@@ -123,13 +128,13 @@ async function connectToRoom() {
             video: false,
             networkQuality: {
                 local: 3, // detailed
-                remote: 3
+                remote: 3,
             },
             preferredAudioCodecs: ["opus"], // default
             preferredVideoCodecs: [{
                 codec: "VP8",
                 // https://www.twilio.com/docs/video/tutorials/using-bandwidth-profile-api#video-codecs-and-the-bw-profile
-                simulcast: false, // true,
+                simulcast: this.simulcast,
             }, "VP9"],
             enableDscp: true,
             dominantSpeaker: true,
@@ -155,9 +160,9 @@ async function connectToRoom() {
                         low: {
                             width: 320,
                             height: 180
-                        }
-                    }
-                }
+                        },
+                    },
+                },
             },
             logLevel: "info", // "debug",
         }).then(room => {

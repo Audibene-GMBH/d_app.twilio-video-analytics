@@ -183,7 +183,10 @@ export default {
 function add_analyzer_to_track(track, component) {
     let tr = track._localTrack ? track._localTrack.mediaStreamTrack : track.mediaStreamTrack;
     const mediaStream = new MediaStream([tr]);
-    const mediaRecorder = new MediaRecorder(mediaStream);
+
+    let recorderOptions = {};
+    recorderOptions.mimeType = track.kind === "audioinput" || track.kind === "audio" ? "audio/webm;codecs=opus" : "video/webm;codecs=vp8";
+    const mediaRecorder = new MediaRecorder(mediaStream, recorderOptions);
 
     let a_track = {
         current_data: 0,
@@ -226,7 +229,10 @@ function add_analyzer_to_track(track, component) {
                 else {
                     stat_object = window.__twilio.stats[0].remoteVideoTrackStats;
                 }
-                stat_object = stat_object.find(t => t.trackSid === a_track._track.sid);
+                stat_object = stat_object.find((t) => {
+                    return t.hasOwnProperty("frameRate") ? t.trackSid === a_track._track.sid && t.frameRate > 0 && t.bytesReceived > 0 :
+                        t.trackSid === a_track._track.sid && t.bytesReceived > 0;
+                });
                 a_track.twilio_total_data = stat_object.bytesReceived;
 
                 if (a_track._prev_stat_object) {
@@ -240,7 +246,14 @@ function add_analyzer_to_track(track, component) {
                 else {
                     stat_object = window.__twilio.stats[0].localVideoTrackStats;
                 }
-                stat_object = stat_object.find(t => t.trackId === a_track._track.name);
+                stat_object = stat_object.find((t) => {
+                    return t.hasOwnProperty("frameRate") ? t.trackId === a_track._track.name && t.frameRate > 0 && t.bytesSent > 0 :
+                        t.trackId === a_track._track.name && t.bytesSent > 0;
+                });
+                if (!stat_object) {
+                    // no suitable data yet
+                    return;
+                }
                 a_track.twilio_total_data = stat_object.bytesSent;
 
                 if (a_track._prev_stat_object) {
