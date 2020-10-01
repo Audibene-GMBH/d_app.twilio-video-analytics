@@ -66,6 +66,8 @@ import MediaAnalyzer from "../components/MediaAnalyzer.vue";
 import TwilioAuthenticator from "../components/TwilioAuthenticator.vue";
 import { ipcRenderer, remote } from "electron";
 
+const tv = remote.require("./modules/twilio-video");
+
 export default {
     components : { MediaTracks, MediaAnalyzer, TwilioAuthenticator },
 
@@ -98,8 +100,8 @@ export default {
             }
         }, 1000);
 
-        const tv = remote.require("./modules/twilio-video");
         this.room_name = tv.generateRoomName();
+        this.participant_name = tv.generateParticipantName();
     }
 }
 

@@ -1,5 +1,6 @@
 const { AccessToken } = require("twilio").jwt;
 const names = require("docker-names");
+const chance = require("chance").Chance();
 
 let credentials = null;
 
@@ -29,8 +30,16 @@ const generateRoomName = () => {
   return names.getRandomName(true);
 };
 
+const generateParticipantName = () => {
+  return chance.name({
+    middle: true,
+    prefix: true,
+  });
+};
+
 module.exports = {
   getAccessToken,
   setCredentials,
   generateRoomName,
+  generateParticipantName,
 };
