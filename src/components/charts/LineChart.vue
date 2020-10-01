@@ -8,7 +8,7 @@
 import AnimationEngine from "./util/animation-engine";
 
 export default {
-    props: ['d', 'new_d'],
+    props: ["d", "new_d"],
     data: function() {
         return {
             canvas: null,
@@ -37,7 +37,7 @@ export default {
     },
     mounted: function() {
         this.canvas = this.$refs.container.querySelector(`#drawSpace`);
-        this.context = this.canvas.getContext('2d');
+        this.context = this.canvas.getContext("2d");
         correctCanvasSize(this, "16:9");
         AnimationEngine.addToQueue(null, drawGridLines, this);
     },
@@ -103,7 +103,7 @@ function drawGridLines(_this) {
 
 function drawDataLine(_this) {
     let data_window = _this.data_points.d.slice(
-        _this.sliding_window.current_pointer < _this.sliding_window.size ? 
+        _this.sliding_window.current_pointer < _this.sliding_window.size ?
         0 : (_this.sliding_window.current_pointer - _this.sliding_window.size),
         _this.sliding_window.current_pointer
     );
@@ -142,7 +142,7 @@ function _formatLabel(_this, axis, data) {
         switch (_f) {
             case "network":
                 return _formatDataToNetworkNotation(data);
-            default: 
+            default:
                 return data;
         }
     }
@@ -154,23 +154,23 @@ function _formatLabel(_this, axis, data) {
 function _formatDataToNetworkNotation(data) {
     data *= 8;
     let divisor = 0;
-    let suffix = 'b';
+    let suffix = "b";
     let logB = __get_log_by_base(1024, data);
     if (logB >= 3) {
-        suffix = 'G' + suffix;
+        suffix = "G" + suffix;
         divisor = 3;
     }
     else if (logB >= 2) {
-        suffix = 'M' + suffix;
+        suffix = "M" + suffix;
         divisor = 2;
     }
     else if (logB >= 1) {
-        suffix = 'K' + suffix;
+        suffix = "K" + suffix;
         divisor = 1;
     }
-    
-    if (divisor === 0) return data + ' ' + suffix;
-    else return (data / Math.pow(1024, divisor)).toFixed(2) + ' ' + suffix;
+
+    if (divisor === 0) return data + " " + suffix;
+    else return (data / Math.pow(1024, divisor)).toFixed(2) + " " + suffix;
 }
 
 function __get_log_by_base(base, number) {

@@ -1,6 +1,6 @@
 <template>
     <div ref="viewer" class="media-viewer" v-if="active">
-        
+
     </div>
 </template>
 
@@ -19,8 +19,11 @@ export default {
 }
 
 function show_media_viewer(show = false) {
-    if (show) this.$refs.viewer.classList.add('active');
-    else this.$refs.viewer.classList.remove('active');
+    if (show) {
+        this.$refs.viewer.classList.add("active");
+    } else {
+        this.$refs.viewer.classList.remove("active");
+    }
 }
 </script>
 
