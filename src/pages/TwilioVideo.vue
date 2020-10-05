@@ -125,6 +125,7 @@ async function connectToRoom() {
         await connect(this.access_token, {
             name: this.room_name,
             region: "us1", // signaling only; media is configured in twilio console
+            realm: "us1",
             audio: false,
             video: false,
             networkQuality: {
@@ -142,7 +143,7 @@ async function connectToRoom() {
             enableDscp: true,
             dominantSpeaker: true,
             maxAudioBitrate: 32000, // 32kbps
-            maxVideoBitrate: 2400000, // mbps // NB! in fitter cockpit we can set it to 1500000
+            maxVideoBitrate: 1572864, // mbps // NB! in fitter cockpit we can set it to 1500000
             // NB! my current assumption that uplink with a/v/s will be approx. 2.5Mb
             // while downlink for a/v will be 1.5-2Mb so we will end up using 3-4Mbit in total
             // subscription related
