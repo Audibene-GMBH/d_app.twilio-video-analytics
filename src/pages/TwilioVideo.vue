@@ -120,33 +120,39 @@ async function connectToRoom() {
         this.access_token = access_token;
         this.room_name = room_name;
 
+        // TODO sync up current settings with Call Manager
         // https://miro.com/app/board/o9J_ksM7LNY=/?moveToWidget=3074457348070591695&cot=14
         await connect(this.access_token, {
             name: this.room_name,
-            region: "us1", // signaling only
+            region: "us1", // signaling only; media is configured in twilio console
             audio: false,
             video: false,
             networkQuality: {
-                local: 3, // detailed
+                local: 3, // detailed level
                 remote: 3,
             },
             preferredAudioCodecs: ["opus"], // default
             preferredVideoCodecs: [{
                 codec: "VP8",
+                // NB! We should have similar settings for fitter cockpit with enabled simulcast
+                // while on customer client simulcast should be disabled to save uplink
                 // https://www.twilio.com/docs/video/tutorials/using-bandwidth-profile-api#video-codecs-and-the-bw-profile
                 simulcast: this.simulcast,
-            }, "VP9"],
+            }, "VP9"], // VP9 is not supported in group rooms
             enableDscp: true,
             dominantSpeaker: true,
             maxAudioBitrate: 32000, // 32kbps
-            maxVideoBitrate: 4000000, // 4mbps
-            bandwidthProfile: { // subscription related
+            maxVideoBitrate: 2400000, // mbps // NB! in fitter cockpit we can set it to 1500000
+            // NB! my current assumption that uplink with a/v/s will be approx. 2.5Mb
+            // while downlink for a/v will be 1.5-2Mb so we will end up using 3-4Mbit in total
+            // subscription related
+            bandwidthProfile: {
                 video: {
                     mode: "collaboration",
                     trackSwitchOffMode: "detected", // "disabled"
                     dominantSpeakerPriority: "high",
-                    maxTracks: 5,
-                    maxSubscriptionBitrate: 4000000, // max value for Group Rooms
+                    maxTracks: 3,
+                    maxSubscriptionBitrate: 1572864, // 4000000 max value for Group Rooms
                     // https://www.twilio.com/docs/video/tutorials/using-bandwidth-profile-api#bw-profiles-vs-track-subscriptions
                     renderDimensions: { // used to "downscale" tracks to optimize bandwidth
                         high: { // relates to priority, not resolution
