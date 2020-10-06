@@ -120,32 +120,38 @@ async function connectToRoom() {
         this.access_token = access_token;
         this.room_name = room_name;
 
-        // TODO sync up current settings with Call Manager
         // https://miro.com/app/board/o9J_ksM7LNY=/?moveToWidget=3074457348070591695&cot=14
         await connect(this.access_token, {
             name: this.room_name,
-            region: "us1", // signaling only; media is configured in twilio console
+            // signaling only
+            region: "us1",
+            //  media is also configured in twilio console
             realm: "us1",
             audio: false,
             video: false,
             networkQuality: {
-                local: 3, // detailed level
+                // detailed level
+                local: 3,
                 remote: 3,
             },
-            preferredAudioCodecs: ["opus"], // default
-            preferredVideoCodecs: [{
-                codec: "VP8",
-                // NB! We should have similar settings for fitter cockpit with enabled simulcast
-                // while on customer client simulcast should be disabled to save uplink
-                // https://www.twilio.com/docs/video/tutorials/using-bandwidth-profile-api#video-codecs-and-the-bw-profile
-                simulcast: this.simulcast,
-            }, "VP9"], // VP9 is not supported in group rooms
+            // default codec
+            preferredAudioCodecs: ["opus"],
+            preferredVideoCodecs: [
+                {
+                    codec: "VP8",
+                    // NB! We should have similar settings for fitter cockpit with enabled simulcast
+                    // while on customer client simulcast should be disabled to save uplink
+                    // https://www.twilio.com/docs/video/tutorials/using-bandwidth-profile-api#video-codecs-and-the-bw-profile
+                    simulcast: this.simulcast,
+                },
+                // VP9 is not supported in group rooms
+                "VP9",
+                "H264"
+            ],
             enableDscp: true,
             dominantSpeaker: true,
-            maxAudioBitrate: 32000, // 32kbps
-            maxVideoBitrate: 1572864, // mbps // NB! in fitter cockpit we can set it to 1500000
-            // NB! my current assumption that uplink with a/v/s will be approx. 2.5Mb
-            // while downlink for a/v will be 1.5-2Mb so we will end up using 3-4Mbit in total
+            maxAudioBitrate: 24000, // kbps
+            maxVideoBitrate: 2500000, // mbps
             // subscription related
             bandwidthProfile: {
                 video: {
@@ -153,20 +159,22 @@ async function connectToRoom() {
                     trackSwitchOffMode: "detected", // "disabled"
                     dominantSpeakerPriority: "high",
                     maxTracks: 3,
-                    maxSubscriptionBitrate: 1572864, // 4000000 max value for Group Rooms
+                    maxSubscriptionBitrate: 1048576, // 4000000 max value for Group Rooms
                     // https://www.twilio.com/docs/video/tutorials/using-bandwidth-profile-api#bw-profiles-vs-track-subscriptions
-                    renderDimensions: { // used to "downscale" tracks to optimize bandwidth
-                        high: { // relates to priority, not resolution
+                    // used to "downscale" tracks to optimize bandwidth
+                    renderDimensions: {
+                        // relates to priority, not resolution
+                        high: {
+                            width: 1280,
+                            height: 720
+                        },
+                        standard: {
                             width: 960,
                             height: 540
                         },
-                        standard: {
+                        low: {
                             width: 640,
                             height: 360
-                        },
-                        low: {
-                            width: 320,
-                            height: 180
                         },
                     },
                 },
