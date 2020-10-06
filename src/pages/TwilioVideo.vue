@@ -142,7 +142,7 @@ async function connectToRoom() {
                     // NB! We should have similar settings for fitter cockpit with enabled simulcast
                     // while on customer client simulcast should be disabled to save uplink
                     // https://www.twilio.com/docs/video/tutorials/using-bandwidth-profile-api#video-codecs-and-the-bw-profile
-                    simulcast: this.simulcast,
+                    simulcast: this.simulcast, // false
                 },
                 // VP9 is not supported in group rooms
                 "VP9",
