@@ -32,6 +32,7 @@
     "chance": "^1.1.7",
     "docker-names": "^1.1.1",
     "globby": "^11.0.1",
+    "node-fetch": "^2.6.1",
     "twilio": "^3.49.1",
     "twilio-video": "^2.7.2",
     "vue": "^2.6.12",

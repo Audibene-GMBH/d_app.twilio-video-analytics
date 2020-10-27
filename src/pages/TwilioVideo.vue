@@ -8,7 +8,7 @@
         <section>
             <h4>Check-In</h4>
             <p>If you have a .cred file, you can drop it over here. And we'll take it from there.</p>
-            <twilio-authenticator></twilio-authenticator>
+            <twilio-authenticator @new-session-information="setSessionInformation" @mode-changed="setMode"></twilio-authenticator>
         </section>
 
         <section>
@@ -17,11 +17,11 @@
             <section class="input-container">
                 <div class="input-section">
                     <label>Room Name</label>
-                    <input type="text" v-model="room_name">
+                    <input type="text" :disabled="mode === 'rfs'" v-model="room_name">
                 </div>
                 <div class="input-section">
                     <label>Your Name</label>
-                    <input type="text" v-model="participant_name">
+                    <input type="text" :disabled="mode === 'rfs'" v-model="participant_name">
                 </div>
                 <div class="input-section">
                     <label>Simulcast</label>
@@ -77,6 +77,8 @@ export default {
 
     data: function() {
         return {
+            mode: 'rfs',
+            session_information: null,
             access_token: null,
             participant_name: null,
             room_name: null,
@@ -95,6 +97,8 @@ export default {
         connectToRoom: connectToRoom,
         addTrackToRoom: addTrackToRoom,
         removeTrackFromRoom: removeTrackFromRoom,
+        setSessionInformation: setSessionInformation,
+        setMode: setMode
     },
 
     mounted: function() {
@@ -116,7 +120,7 @@ async function connectToRoom() {
     }
     else {
         this.room._status = "connecting";
-        const {access_token, room_name} = await getPermissionToken(this.participant_name, this.room_name);
+        const {access_token, room_name} = await getPermissionToken.call(this, this.participant_name, this.room_name);
         this.access_token = access_token;
         this.room_name = room_name;
 
@@ -124,9 +128,9 @@ async function connectToRoom() {
         await connect(this.access_token, {
             name: this.room_name,
             // signaling only
-            region: "us1",
+            // region: "us1",
             //  media is also configured in twilio console
-            realm: "us1",
+            // realm: "us1",
             audio: false,
             video: false,
             networkQuality: {
@@ -287,12 +291,60 @@ function removeTrackFromRoom(track) {
 }
 
 function getPermissionToken(userName, roomName) {
-    return new Promise((res, rej) => {
-        ipcRenderer.on("get_access_token", (event, token_and_room) => {
-            res(token_and_room);
+    if (this.mode !== 'rfs') {
+        return new Promise((res, rej) => {
+            ipcRenderer.on("get_access_token", (event, token_and_room) => {
+                res(token_and_room);
+            });
+            ipcRenderer.send("get_access_token", userName, roomName);
         });
-        ipcRenderer.send("get_access_token", userName, roomName);
+    }
+    else {
+        console.log(this.rfs_room_config);
+        return {
+            access_token: this.session_information.videoInfo.accessToken,
+            room_name: this.session_information.videoInfo.room
+        };
+    }
+}
+
+async function setSessionInformation(config) {
+    this.session_information = config;
+    let videoInfo = await getRoomInformation.call(this, this.session_information.currentSession.id);
+    this.session_information.videoInfo = videoInfo;
+    this.room_name = videoInfo.room;
+}
+
+async function getRoomInformation(session_id) {
+    let getAuthToken = function() {
+        return new Promise((res, rej) => {
+            ipcRenderer.once("get_auth_token", async (e, access_token) => {
+                res(access_token);
+            });
+            ipcRenderer.send("get_auth_token");
+        });
+    };
+
+    const access_token = await getAuthToken();
+    const response = await fetch(`${ipcRenderer.sendSync("get_config_object").rfs.cockpit_api}v1/sessions/${session_id}/video-config`, {
+        headers: new Headers({
+            authorization: access_token ? `Bearer ${access_token}` : '',
+            'Content-Type': 'application/json',
+        }),
+        method: 'PUT',
+        body: JSON.stringify({
+            participant: {
+                id: 'analyzer',
+                firstName: this.participant_name,
+                lastName: ''
+            }
+        })
     });
+    return await response.json();
+}
+
+function setMode(newMode) {
+    this.mode = newMode;
 }
 </script>
 
