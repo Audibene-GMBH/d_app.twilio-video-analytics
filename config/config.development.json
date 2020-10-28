@@ -1,3 +1,4 @@
 {
-    "rfs_url": "http://localhost:3001/"
+    "rfs": "http://localhost:3001/",
+    "cockpit": "http://localhost:3001/cockpit/api/"
 }

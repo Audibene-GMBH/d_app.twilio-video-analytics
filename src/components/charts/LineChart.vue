@@ -127,11 +127,21 @@ function drawDataLine(_this) {
         _this.context.moveTo(plots[i].x, plots[i].y);
         _this.context.lineTo(plots[i-1].x, plots[i-1].y);
     }
+
+    // Write the Label of Latest Data Point in the Chart
+    if (plots.length > 0) 
+        _text(_this, 
+            _formatLabel(_this, "y", data_window[data_window.length - 1]), 
+            plots[plots.length - 1].x, 
+            plots[plots.length - 1].y
+        );
+
     _this.context.stroke();
 }
 
 function _text(_this, text, x, y) {
     _this.context.font = "10px sans-serif";
+    _this.context.strokeStyle = "rgb(200, 200, 200)";
     _this.context.fillText(text, x, y);
 }
 

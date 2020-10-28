@@ -213,6 +213,7 @@ function setEventHandlersForRoom(component) {
     });
     r.on("participantDisconnected", participant => {
         component.room._participants = component.room._room.participants.size;
+        component.$refs.analyzer.deactivate_participant(participant.identity);
     });
     r.on("participantReconnected", participant => { console.log("Participant Reconnected"); });
     r.on("participantReconnecting", participant => { console.log("Participant Reconnecting"); });
@@ -300,7 +301,6 @@ function getPermissionToken(userName, roomName) {
         });
     }
     else {
-        console.log(this.rfs_room_config);
         return {
             access_token: this.session_information.videoInfo.accessToken,
             room_name: this.session_information.videoInfo.room
@@ -326,7 +326,7 @@ async function getRoomInformation(session_id) {
     };
 
     const access_token = await getAuthToken();
-    const response = await fetch(`${ipcRenderer.sendSync("get_config_object").rfs.cockpit_api}v1/sessions/${session_id}/video-config`, {
+    const response = await fetch(`${ipcRenderer.sendSync("get_config_object").cockpit}v1/sessions/${session_id}/video-config`, {
         headers: new Headers({
             authorization: access_token ? `Bearer ${access_token}` : '',
             'Content-Type': 'application/json',

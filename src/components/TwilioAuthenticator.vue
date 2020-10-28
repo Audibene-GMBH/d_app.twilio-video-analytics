@@ -13,6 +13,15 @@
         </div>
         <div class="rfs-options" v-if="mode ==='rfs'">
             <div>
+                <label>Environment</label>
+                <select v-model="env">
+                    <option selected value="development">Development</option>
+                    <option value="testing">Testing</option>
+                    <option value="staging">Staging</option>
+                    <option value="production" disabled>Production</option>
+                </select>
+            </div>
+            <div>
                 <label>User Name</label>
                 <input type="text" v-model="fitter_user">
             </div>
@@ -58,9 +67,10 @@ export default {
     data: function() {
         return {
             mode: "rfs",
-
-            fitter_user: null,
-            fitter_password: null,
+        
+            env: 'development',
+            fitter_user: "",
+            fitter_password: "",
             fitting_id: "",
 
             credentials: null,
@@ -114,6 +124,9 @@ export default {
     watch: {
         mode: function(new_value) {
             this.$emit("mode-changed", new_value);
+        },
+        env: function(new_value) {
+            ipcRenderer.send("set_config_env", new_value);
         }
     }
 };
@@ -170,7 +183,7 @@ function getCallDetails(username, password, fitting_id) {
 }
 
 async function getFittingDetails(access_token, fitting_id) {
-    const response = await fetch(`${ipcRenderer.sendSync("get_config_object").rfs.cockpit_api}v1/fittings/${fitting_id}`, {
+    const response = await fetch(`${ipcRenderer.sendSync("get_config_object").cockpit}v1/fittings/${fitting_id}`, {
         headers: new Headers({
             authorization: access_token ? `Bearer ${access_token}` : '',
             'Content-Type': 'application/json',
@@ -217,6 +230,14 @@ async function getFittingDetails(access_token, fitting_id) {
 }
 .twilio-authenticator .rfs-options input[type='text'],
 .twilio-authenticator .rfs-options input[type='password'] {
+    border: none;
+    padding: 10px 5px;
+    border-bottom: 1px solid #999;
+    font-size: 0.95rem;
+    font-weight: 700;
+    width: 100%;
+}
+.twilio-authenticator .rfs-options select {
     border: none;
     padding: 10px 5px;
     border-bottom: 1px solid #999;

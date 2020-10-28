@@ -1,8 +1,41 @@
 <template>
     <div class="media-analyzer">
+        <ul class="participant-dashboard">
+            <li class ="white" v-for="(participant, index) in participant_data" v-bind:key="index">
+                <div class="card-header">
+                    <h3>Participant #{{ index + 1 }}</h3>
+                    <h5>{{participant.name}}</h5>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat">
+                        <span>{{participant.tracks.audio.reduce((a,t) => a + 1, 0)}}</span>
+                        <label>Audio Tracks</label>
+                    </div>
+                    <div class="stat">
+                        <span>{{participant.tracks.video.reduce((a,t) => a + 1, 0)}}</span>
+                        <label>Video Tracks</label>
+                    </div>
+                    <div class="stat">
+                        <span>{{ 
+                            convert_network_data(
+                                participant.tracks.audio.reduce((a, t) => t.twilio_data_rate + a, 0) + 
+                                participant.tracks.video.reduce((a, t) => t.twilio_data_rate + a, 0), 
+                            true) 
+                        }}ps</span>
+                        <label>Total Bandwidth Consumption</label>
+                    </div>
+                </div>
+
+            </li>
+        </ul>
+
         <ul class="current-tracks">
             <li v-for="(track, index) in tracks_under_analysis" v-bind:key="index">
-                <h3><span ref="track-name" class="track-name" v-html="track._formatted_name"></span> | <span>{{track._track.remote ? "Remote" : "Local"}} ({{ track._track.kind }})</span></h3>
+                <h3>
+                    <span ref="track-name" class="track-name" v-html="track._formatted_name"></span> | 
+                    <span>{{track._track.remote ? "Remote" : "Local"}} ({{ track._track.kind }})</span>
+                </h3>
                 <div class="stat">
                     <label>Total Data Generated (Bytes)</label>
                     <span>{{ convert_network_data(track.total_data) }}</span>
@@ -163,21 +196,66 @@ export default {
     data: function() {
         return {
             tracks_under_analysis: [],
-            snapshots: []
+            snapshots: [],
+            participant_data: []
         };
     },
     methods: {
         convert_network_data: convert_network_data,
-        stop_analyzing_track: stop_analyzing_track
+        stop_analyzing_track: stop_analyzing_track,
+        deactivate_participant: deactivate_participant
     },
     watch: {
         available_tracks: function() {
             const new_track = this.available_tracks.find(t => !t.analyzer);
             if (new_track) {
+                add_participant_data(new_track, this);
                 add_analyzer_to_track(new_track, this);
             }
         }
     }
+}
+
+function deactivate_participant(participant_name) {
+    let participant = this.participant_data.find(p => p.name === participant_name);
+
+    participant.tracks.audio.forEach(track => {
+        remove_track_from_participant_data(track, this);
+    });
+    participant.tracks.video.forEach(track => {
+        remove_track_from_participant_data(track, this);
+    });
+}
+
+function add_participant_data(track, component) {
+    let participant = component.participant_data.find(p => p.name === track.participantName);
+    if (!participant) {
+        component.participant_data.push({
+            name: track.participantName,
+            tracks: {
+                audio: [],
+                video: []
+            }
+        });
+    }
+}
+
+function add_track_to_participant_data(track, component) {
+    let is_track_type_audio = track._track.kind === "audio";
+    let participant = component.participant_data.find(p => p.name === track._track.participantName);
+
+    if (is_track_type_audio) participant.tracks.audio.push(track);
+    else participant.tracks.video.push(track);
+}
+
+function remove_track_from_participant_data(track, component) {
+    let is_track_type_audio = track._track.kind === "audio";
+    let participant = component.participant_data.find(p => p.name === track._track.participantName);
+
+    let track_to_remove = participant.tracks[is_track_type_audio ? 'audio' : 'video'].find(t => __check_equality(t, track._track));
+    participant.tracks[is_track_type_audio ? 'audio' : 'video'].splice(
+        participant.tracks[is_track_type_audio ? 'audio' : 'video'].indexOf(track_to_remove), 1
+    );
 }
 
 function add_analyzer_to_track(track, component) {
@@ -207,6 +285,7 @@ function add_analyzer_to_track(track, component) {
         _prev_stat_object: null
     };
     component.tracks_under_analysis.push(a_track);
+    add_track_to_participant_data(a_track, component);
 
     track.analyzer = {
         total_data: 0,
@@ -230,7 +309,7 @@ function add_analyzer_to_track(track, component) {
                     stat_object = window.__twilio.stats[0].remoteVideoTrackStats;
                 }
                 stat_object = stat_object.find((t) => {
-                    return t.hasOwnProperty("frameRate") ? t.trackSid === a_track._track.sid && t.frameRate > 0 && t.bytesReceived > 0 :
+                    return t.hasOwnProperty("frameRate") ? t.trackSid === a_track._track.sid && t.bytesReceived > 0 :
                         t.trackSid === a_track._track.sid && t.bytesReceived > 0;
                 });
                 a_track.twilio_total_data = stat_object.bytesReceived;
@@ -266,8 +345,8 @@ function add_analyzer_to_track(track, component) {
             }
             else {
                 a_track._is_video = true;
-                a_track._vt_width = stat_object.dimensions.width;
-                a_track._vt_height = stat_object.dimensions.height;
+                if (stat_object.dimensions) a_track._vt_width = stat_object.dimensions.width;
+                if (stat_object.dimensions) a_track._vt_height = stat_object.dimensions.height;
                 a_track._vt_frameRate = stat_object.frameRate;
             }
 
@@ -305,10 +384,12 @@ function convert_network_data(data, bit = false) {
 function stop_analyzing_track(track) {
     if (!track) return;
     track.analyzer.recorder.stop();
-    let index = this.tracks_under_analysis.indexOf(
-        this.tracks_under_analysis.find(t => __check_equality(t._track, track))
-    );
+    
+    let track_to_be_removed = this.tracks_under_analysis.find(t => __check_equality(t._track, track));
+    let index = this.tracks_under_analysis.indexOf(track_to_be_removed);
     this.snapshots.push(...this.tracks_under_analysis.splice(index, 1));
+
+    remove_track_from_participant_data(track_to_be_removed, this);
 }
 
 function __check_equality(track1, track2) {
@@ -342,6 +423,48 @@ function __get_log_by_base(base, number) {
 </script>
 
 <style>
+
+.card-header {
+    margin: 0 0 20px 0;
+    display: grid;
+    grid-gap: 5px;
+    grid-column: 1 / -1;
+}
+.card-header > h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #232F34;
+}
+.card-header > h5 {
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: #232F34;
+}
+
+.stats {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+}
+.stats .stat {
+    display: grid;
+    grid-gap: 10px;
+    align-items: center;
+    justify-content: center;
+}
+.stats .stat span {
+    font-weight: 700;
+    font-size: 2rem;
+    text-align: center;
+    color: #233456;
+}
+.stats .stat label {
+    font-weight: 400;
+    font-size: 1rem;
+    text-align: center;
+    color: #54546F;
+}
+
 ul {
     display: flex;
     grid-gap: 10px;
@@ -367,16 +490,23 @@ ul > li {
     padding: 15px;
     grid-gap: 10px;
     grid-template-columns: repeat(5, 1fr);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 8px rgba(0, 0, 0, 0.1);
-    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 3px 5px rgba(0, 0, 0, 0.1);
+    border-radius: 2px;
     margin-bottom: 10px;
+}
+
+ul > li.white {
+    background: #fff;
 }
 
 ul > li > h3 {
     grid-column: 1 / -1;
     margin: 10px 0;
-    font-weight: 700;
+    font-weight: 300;
     font-size: 1.2rem;
+}
+ul > li > h3 > b {
+    font-weight: 700;
 }
 
 ul > li > h3 > span {

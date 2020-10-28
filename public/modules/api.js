@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const { getConfigObject } = require('./config-loader')
 
 let refresh_token = null;
 
@@ -6,7 +7,7 @@ async function get_token(username, password) {
     let has_credentials = username && password;
 
     if (refresh_token) {
-        const refresh_token_url = `${get_config_object().rfs.api}oauth/refresh`;
+        const refresh_token_url = `${getConfigObject().rfs}oauth/refresh`;
         const response = await fetch(refresh_token_url, {
             headers: {
                 'Content-Type': 'application/json'
@@ -26,7 +27,7 @@ async function get_token(username, password) {
             return null;
         }
         else {
-            const new_token_url = `${get_config_object().rfs.api}oauth/token`;
+            const new_token_url = `${getConfigObject().rfs}oauth/token`;
             const response = await fetch(new_token_url, {
                 headers: {
                     'Content-Type': 'application/json'
@@ -44,10 +45,6 @@ async function get_token(username, password) {
             return response_body.accessToken;
         }
     }
-}
-
-function get_config_object() {
-    return require(`../../config/index`);
 }
 
 module.exports = {

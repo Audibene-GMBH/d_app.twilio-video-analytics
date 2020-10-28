@@ -1,6 +1,8 @@
 const globby = require("globby");
 const fs = require("fs");
 
+let environment = 'development';
+
 module.exports = {
   load: async () => {
     const paths = await globby(["*.cred", ".cred"], {
@@ -29,4 +31,12 @@ module.exports = {
       console.error("Failed to read config file content", err);
     }
   },
+
+  setEnv: (env) => {
+    environment = env;
+  },
+
+  getConfigObject: () => {
+    return require(`../../config/config.${environment}.json`);
+  }
 };

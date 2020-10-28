@@ -1,7 +1,7 @@
 const { ipcMain } = require("electron");
 const { getAccessToken, setCredentials } = require("./twilio-video");
 const { get_token } = require("./api");
-const config = require("../../config/index");
+const { getConfigObject ,setEnv } = require("./config-loader");
 
 function init_ipc_listeners() {
   ipcMain.on("get_access_token", (event, user_name, room_name) => {
@@ -30,8 +30,13 @@ function init_auth_events() {
 
 function init_config_events() {
   ipcMain.on("get_config_object", (event, arg) => {
-    event.returnValue = config;
-  })
+    event.returnValue = getConfigObject();
+  });
+
+  ipcMain.on("set_config_env", (event, env) => {
+    console.log(`Setting the Environment to ${env}. The Configuration will be changed the next time you ask for it.`);
+    setEnv(env);
+  });
 }
 
 module.exports = {
