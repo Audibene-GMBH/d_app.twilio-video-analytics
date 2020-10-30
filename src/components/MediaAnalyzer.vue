@@ -27,6 +27,29 @@
                     </div>
                 </div>
 
+                <section class="table" v-for="(track, i) in participant.tracks.audio" v-bind:key="'au' + i">
+                    <div class="heading">
+                        <h3>Audio Track #{{i + 1}}</h3>
+                        <div class="sidenote">
+                            {{ convert_network_data(track.twilio_data_rate, true) }}ps
+                        </div>
+                        <h6>{{ track._track.name }}</h6>
+                    </div>
+                    <div class="body"></div>
+                </section>
+
+                <section class="table" v-for="(track, i) in participant.tracks.video" v-bind:key="'vi' + i">
+                    <div :id="'track-renderer-' + i" class="track-renderer"></div>
+                    <div class="heading">
+                        <h3>Video Track #{{i + 1}}</h3>
+                        <div class="sidenote">
+                            {{ convert_network_data(track.twilio_data_rate, true) }}ps
+                        </div>
+                        <h6>{{ track._track.name }}</h6>
+                    </div>
+                    <div class="body"></div>
+                </section>
+
             </li>
         </ul>
 
@@ -282,7 +305,9 @@ function add_analyzer_to_track(track, component) {
         _vt_height: 0,
         _vt_frameRate: 0,
 
-        _prev_stat_object: null
+        _prev_stat_object: null,
+
+        _track_events_log: []
     };
     component.tracks_under_analysis.push(a_track);
     add_track_to_participant_data(a_track, component);
@@ -312,9 +337,9 @@ function add_analyzer_to_track(track, component) {
                     return t.hasOwnProperty("frameRate") ? t.trackSid === a_track._track.sid && t.bytesReceived > 0 :
                         t.trackSid === a_track._track.sid && t.bytesReceived > 0;
                 });
-                a_track.twilio_total_data = stat_object.bytesReceived;
+                if (stat_object) a_track.twilio_total_data = stat_object.bytesReceived;
 
-                if (a_track._prev_stat_object) {
+                if (a_track._prev_stat_object && stat_object) {
                     a_track.twilio_data_rate = ( (stat_object.bytesReceived - a_track._prev_stat_object.bytesReceived) / ((stat_object.timestamp - a_track._prev_stat_object.timestamp) / 1000) )
                 }
             }
@@ -350,7 +375,7 @@ function add_analyzer_to_track(track, component) {
                 a_track._vt_frameRate = stat_object.frameRate;
             }
 
-            a_track._prev_stat_object = stat_object;
+            if (stat_object) a_track._prev_stat_object = stat_object;
         }
     };
 
@@ -463,6 +488,36 @@ function __get_log_by_base(base, number) {
     font-size: 1rem;
     text-align: center;
     color: #54546F;
+}
+
+.table {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(auto-fit, minmax(75px, 1fr));
+    margin: 20px 10px;
+}
+.table .heading {
+    grid-column: 1/ -1;
+    grid-template-columns: auto max-content;
+    display: grid;
+    grid-gap: 5px;
+}
+.table .heading h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #232345;
+}
+.table .heading h6 {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #233445;
+}
+.table .heading .sidenote {
+    grid-row: span 2;
+    align-content: center;
+    display: grid;
+    color: #999;
+    font-weight: 700;
 }
 
 ul {

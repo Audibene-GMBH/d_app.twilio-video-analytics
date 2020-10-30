@@ -160,7 +160,7 @@ async function connectToRoom() {
             bandwidthProfile: {
                 video: {
                     mode: "collaboration",
-                    trackSwitchOffMode: "detected", // "disabled"
+                    trackSwitchOffMode: "disabled", // "disabled"
                     dominantSpeakerPriority: "high",
                     maxTracks: 3,
                     maxSubscriptionBitrate: 1048576, // 4000000 max value for Group Rooms
@@ -218,8 +218,8 @@ function setEventHandlersForRoom(component) {
     r.on("participantReconnected", participant => { console.log("Participant Reconnected"); });
     r.on("participantReconnecting", participant => { console.log("Participant Reconnecting"); });
 
-    r.on("trackDisabled", () => { console.log("Track Disabled"); });
-    r.on("trackEnabled", () => { console.log("Track Enabled"); });
+    r.on("trackDisabled", (publication, participant) => { console.log("Track Disabled"); });
+    r.on("trackEnabled", (publication, participant) => { console.log("Track Enabled"); });
     r.on("trackPublished", (publication, participant) => {
         console.log(`Track Published by ${participant.identity}`);
     });
@@ -251,6 +251,7 @@ function setEventHandlersForRoom(component) {
             if (!t.remote) return false;
             return t.sid === publication.trackSid;
         });
+
         component.$refs.analyzer.stop_analyzing_track(track_to_be_removed);
         component.room._tracks.splice(
             component.room._tracks.indexOf(track_to_be_removed), 1

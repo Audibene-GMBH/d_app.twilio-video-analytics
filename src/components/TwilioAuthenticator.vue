@@ -69,9 +69,9 @@ export default {
             mode: "rfs",
         
             env: 'development',
-            fitter_user: "",
-            fitter_password: "",
-            fitting_id: "",
+            fitter_user: "bob.thefitter@audibene.de",
+            fitter_password: "password",
+            fitting_id: "f8810556-40c2-4fde-a18d-d44f585bf4cc",
 
             credentials: null,
             drag: false,
