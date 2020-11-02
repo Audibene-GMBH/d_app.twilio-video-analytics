@@ -29,7 +29,7 @@ app.on("ready", () => {
   const modalChildWindow = new BrowserWindow({
     parent: window,
     modal: false,
-    closable: false,
+    closable: true,
     minimizable: false,
     x: 70,
     y: 70,

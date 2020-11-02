@@ -162,7 +162,7 @@ async function connectToRoom() {
                     mode: "collaboration",
                     trackSwitchOffMode: "disabled", // "disabled"
                     dominantSpeakerPriority: "high",
-                    maxTracks: 3,
+                    // maxTracks: 3,
                     maxSubscriptionBitrate: 1048576, // 4000000 max value for Group Rooms
                     // https://www.twilio.com/docs/video/tutorials/using-bandwidth-profile-api#bw-profiles-vs-track-subscriptions
                     // used to "downscale" tracks to optimize bandwidth
@@ -188,6 +188,10 @@ async function connectToRoom() {
             this.room._room = room;
             this.room._participants = this.room._room.participants.size;
             this.room._status = "connected";
+            
+            room.participants.forEach(p => {
+                this.$refs.analyzer.add_participant(p);
+            });
             setEventHandlersForRoom(this);
         }).catch(err => {
             this.room._status = "disconnected";
@@ -210,10 +214,11 @@ function setEventHandlersForRoom(component) {
 
     r.on("participantConnected", participant => {
         component.room._participants = component.room._room.participants.size;
+        component.$refs.analyzer.add_participant(participant);
     });
     r.on("participantDisconnected", participant => {
         component.room._participants = component.room._room.participants.size;
-        component.$refs.analyzer.deactivate_participant(participant.identity);
+        component.$refs.analyzer.remove_participant(participant.identity);
     });
     r.on("participantReconnected", participant => { console.log("Participant Reconnected"); });
     r.on("participantReconnecting", participant => { console.log("Participant Reconnecting"); });
@@ -235,6 +240,14 @@ function setEventHandlersForRoom(component) {
             remote: true
         });
 
+        component.$refs.analyzer.add_track({
+            ...track,
+            participantName: participant.identity,
+            _participant: participant,
+            _room: r,
+            remote: true
+        });
+
         track.on('switchedOff', () => {
             console.log(`The RemoteTrack ${track.name} was switched off`);
         });
@@ -243,7 +256,7 @@ function setEventHandlersForRoom(component) {
         });
     });
     r.on("trackunSubscribed", (track, publication, participant) => {
-        console.log(`Track UnSubscribed by ${participant.identity}`, track);
+        console.log(`\n\n\nTrack UnSubscribed by ${participant.identity}`, track);
     });
     r.on("trackUnpublished", (publication, participant) => {
         console.log(`Track Unpublished by ${participant.identity}`, publication);
@@ -252,7 +265,7 @@ function setEventHandlersForRoom(component) {
             return t.sid === publication.trackSid;
         });
 
-        component.$refs.analyzer.stop_analyzing_track(track_to_be_removed);
+        component.$refs.analyzer.remove_track(publication.trackName);
         component.room._tracks.splice(
             component.room._tracks.indexOf(track_to_be_removed), 1
         );
@@ -288,7 +301,6 @@ function removeTrackFromRoom(track) {
     this.room._room.localParticipant.unpublishTrack(track._localTrack);
 
     let removed_track = this.room._tracks.find(t => t.deviceId === track.deviceId && t.label === track.label);
-    this.$refs.analyzer.stop_analyzing_track(removed_track);
     this.room._tracks.splice(this.room._tracks.indexOf(removed_track), 1);
 }
 

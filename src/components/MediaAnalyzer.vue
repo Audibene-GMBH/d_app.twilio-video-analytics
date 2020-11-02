@@ -1,10 +1,10 @@
 <template>
     <div class="media-analyzer">
         <ul class="participant-dashboard">
-            <li class ="white" v-for="(participant, index) in participant_data" v-bind:key="index">
+            <li class ="white" v-for="(participant, index) in participant_data" v-bind:key="participant.identity">
                 <div class="card-header">
                     <h3>Participant #{{ index + 1 }}</h3>
-                    <h5>{{participant.name}}</h5>
+                    <h5>{{participant.identity}}</h5>
                 </div>
                 
                 <div class="stats">
@@ -19,15 +19,15 @@
                     <div class="stat">
                         <span>{{ 
                             convert_network_data(
-                                participant.tracks.audio.reduce((a, t) => t.twilio_data_rate + a, 0) + 
-                                participant.tracks.video.reduce((a, t) => t.twilio_data_rate + a, 0), 
+                                participant.tracks.audio.reduce((a, t) => isNaN(t.twilio_data_rate) ? 0 : t.twilio_data_rate + a, 0) + 
+                                participant.tracks.video.reduce((a, t) => isNaN(t.twilio_data_rate) ? 0 : t.twilio_data_rate + a, 0), 
                             true) 
                         }}ps</span>
                         <label>Total Bandwidth Consumption</label>
                     </div>
                 </div>
 
-                <section class="table" v-for="(track, i) in participant.tracks.audio" v-bind:key="'au' + i">
+                <section class="table" v-for="(track, i) in participant.tracks.audio" v-bind:key="participant.identity + `__${track._track.name}__`">
                     <div class="heading">
                         <h3>Audio Track #{{i + 1}}</h3>
                         <div class="sidenote">
@@ -38,8 +38,7 @@
                     <div class="body"></div>
                 </section>
 
-                <section class="table" v-for="(track, i) in participant.tracks.video" v-bind:key="'vi' + i">
-                    <div :id="'track-renderer-' + i" class="track-renderer"></div>
+                <section class="table" v-for="(track, i) in participant.tracks.video" v-bind:key="participant.identity + `__${track._track.name}__`">
                     <div class="heading">
                         <h3>Video Track #{{i + 1}}</h3>
                         <div class="sidenote">
@@ -225,36 +224,41 @@ export default {
     },
     methods: {
         convert_network_data: convert_network_data,
-        stop_analyzing_track: stop_analyzing_track,
-        deactivate_participant: deactivate_participant
-    },
-    watch: {
-        available_tracks: function() {
-            const new_track = this.available_tracks.find(t => !t.analyzer);
-            if (new_track) {
-                add_participant_data(new_track, this);
-                add_analyzer_to_track(new_track, this);
-            }
-        }
+
+        add_track,
+        remove_track,
+        add_participant,
+        remove_participant
     }
 }
 
-function deactivate_participant(participant_name) {
-    let participant = this.participant_data.find(p => p.name === participant_name);
 
-    participant.tracks.audio.forEach(track => {
-        remove_track_from_participant_data(track, this);
-    });
-    participant.tracks.video.forEach(track => {
-        remove_track_from_participant_data(track, this);
-    });
+function add_track(track) {
+    let existing_track = this.tracks_under_analysis.find(track => track._track.sid === track.sid);
+
+    const track_under_analysis = add_analyzer_to_track(track, this);
+    this.tracks_under_analysis.push(track_under_analysis);
+    _add_track_to_participant_data(track_under_analysis, this);
+
+    console.log(`After ADD_TRACK Call : `, this.tracks_under_analysis.map(t => t._track.name));
 }
 
-function add_participant_data(track, component) {
-    let participant = component.participant_data.find(p => p.name === track.participantName);
-    if (!participant) {
-        component.participant_data.push({
-            name: track.participantName,
+function remove_track(track_name) {
+    const track_to_be_removed = this.tracks_under_analysis.find(track => track._track.name === track_name);
+    const index = this.tracks_under_analysis.indexOf(track_to_be_removed);
+
+    _remove_track_from_participant_data(track_to_be_removed, this);
+    remove_analyzer_from_track(track_to_be_removed._track);
+
+    this.tracks_under_analysis.splice(index, 1);
+    console.log(`After REMOVE_TRACK Call (${track_name}): `, this.tracks_under_analysis.map(t => t._track.name));
+}
+
+function add_participant(participant) {
+    const p = this.participant_data.find(pa => pa.identity === participant.identity);
+    if (!p) {
+        this.participant_data.push({
+            identity: participant.identity,
             tracks: {
                 audio: [],
                 video: []
@@ -263,17 +267,38 @@ function add_participant_data(track, component) {
     }
 }
 
-function add_track_to_participant_data(track, component) {
+function remove_participant(participant_identity) {
+    const participant_to_be_removed = this.participant_data.find(p => p.identity === participant_identity);
+    const index = this.participant_data.indexOf(participant_to_be_removed);
+    
+    participant_to_be_removed.tracks.audio.forEach(track => {
+        this.remove_track(track._track.name);
+    });
+    participant_to_be_removed.tracks.video.forEach(track => {
+        this.remove_track(track._track.name);
+    });
+    
+    this.participant_data.splice(index, 1);
+    console.log('\n\nPARTICIPANT REMOTED', participant_to_be_removed, this.participant_data);
+}
+
+function _add_track_to_participant_data(track, component) {
     let is_track_type_audio = track._track.kind === "audio";
-    let participant = component.participant_data.find(p => p.name === track._track.participantName);
+    let participant = component.participant_data.find(p => p.identity === track._track.participantName);
+
+    if (!participant) return;
 
     if (is_track_type_audio) participant.tracks.audio.push(track);
     else participant.tracks.video.push(track);
 }
 
-function remove_track_from_participant_data(track, component) {
+function _remove_track_from_participant_data(track, component) {
     let is_track_type_audio = track._track.kind === "audio";
-    let participant = component.participant_data.find(p => p.name === track._track.participantName);
+    let participant = component.participant_data.find(p => p.identity === track._track.participantName);
+
+    console.log(`REMOVING TRACK FROM PARTICIPANT`, participant, track, '\n\n');
+
+    if (!participant) return;
 
     let track_to_remove = participant.tracks[is_track_type_audio ? 'audio' : 'video'].find(t => __check_equality(t, track._track));
     participant.tracks[is_track_type_audio ? 'audio' : 'video'].splice(
@@ -309,8 +334,6 @@ function add_analyzer_to_track(track, component) {
 
         _track_events_log: []
     };
-    component.tracks_under_analysis.push(a_track);
-    add_track_to_participant_data(a_track, component);
 
     track.analyzer = {
         total_data: 0,
@@ -370,9 +393,9 @@ function add_analyzer_to_track(track, component) {
             }
             else {
                 a_track._is_video = true;
-                if (stat_object.dimensions) a_track._vt_width = stat_object.dimensions.width;
-                if (stat_object.dimensions) a_track._vt_height = stat_object.dimensions.height;
-                a_track._vt_frameRate = stat_object.frameRate;
+                if (stat_object && stat_object.dimensions) a_track._vt_width = stat_object.dimensions.width;
+                if (stat_object && stat_object.dimensions) a_track._vt_height = stat_object.dimensions.height;
+                if (stat_object && stat_object.frameRate) a_track._vt_frameRate = stat_object.frameRate;
             }
 
             if (stat_object) a_track._prev_stat_object = stat_object;
@@ -380,7 +403,11 @@ function add_analyzer_to_track(track, component) {
     };
 
     track.analyzer.recorder.start(1000);
-    console.log(`${track.label} |  Track Analyzer Started`);
+    return a_track;
+}
+
+function remove_analyzer_from_track(track) {
+    if (track.analyzer.recorder.state !== 'inactive') track.analyzer.recorder.stop();
 }
 
 function convert_network_data(data, bit = false) {
@@ -404,17 +431,6 @@ function convert_network_data(data, bit = false) {
 
     if (divisor === 0) return data + " " + suffix;
     else return (data / Math.pow(1024, divisor)).toFixed(2) + " " + suffix;
-}
-
-function stop_analyzing_track(track) {
-    if (!track) return;
-    track.analyzer.recorder.stop();
-    
-    let track_to_be_removed = this.tracks_under_analysis.find(t => __check_equality(t._track, track));
-    let index = this.tracks_under_analysis.indexOf(track_to_be_removed);
-    this.snapshots.push(...this.tracks_under_analysis.splice(index, 1));
-
-    remove_track_from_participant_data(track_to_be_removed, this);
 }
 
 function __check_equality(track1, track2) {
