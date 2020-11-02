@@ -8,7 +8,8 @@
     "productName": "Twilio Video API Analysis Application",
     "files": [
       "build/**/*",
-      "public/**/*"
+      "public/**/*",
+      "config/**/*"
     ],
     "mac": {
       "category": "public.app-category.education",
